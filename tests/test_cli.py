@@ -79,3 +79,16 @@ def test_cli_bench():
     assert "Running LRE Benchmark" in res.stdout
     assert "Overall" in res.stdout
     assert "Mean Latency" in res.stdout
+
+def test_cli_hook_bash():
+    res = run_lre(["hook", "bash"])
+    assert res.returncode == 0
+    assert "__lre_preexec" in res.stdout
+    assert "DEBUG" in res.stdout
+    assert "shopt -s extdebug" in res.stdout
+
+def test_cli_hook_zsh():
+    res = run_lre(["hook", "zsh"])
+    assert res.returncode == 0
+    assert "__lre_zsh_preexec" in res.stdout
+    assert "add-zsh-hook" in res.stdout

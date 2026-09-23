@@ -161,6 +161,55 @@ def run_bench(args) -> int:
     print(f"Overall (N={len(latencies_all)}): Mean={overall_mean:.2f}µs | P50={p50:.2f}µs | P95={p95:.2f}µs | P99={p99:.2f}µs")
     return 0
 
+def run_hook(args) -> int:
+    shell = args.shell.lower()
+    if shell == "bash":
+        print("""# LRE (Local Reflex Engine) Bash Preexec Guard
+# Add to ~/.bashrc: eval "$(lre hook bash)"
+__lre_preexec() {
+    local cmd="$BASH_COMMAND"
+    case "$cmd" in
+        lre*|cd*|pwd|echo*|history*|"") return 0 ;;
+    esac
+    if ! lre check -q "$cmd" 2>/dev/null; then
+        local code=$?
+        if [ $code -eq 1 ]; then
+            echo -e "\\033[91m\\033[1m[LRE BLOCKED]\\033[0m \\033[91mDangerous command prevented by Local Reflex Engine:\\033[0m $cmd" >&2
+            return 1
+        elif [ $code -eq 2 ]; then
+            echo -e "\\033[93m[LRE WARNING]\\033[0m \\033[93mSuspicious command flagged:\\033[0m $cmd" >&2
+        fi
+    fi
+}
+shopt -s extdebug
+trap '__lre_preexec' DEBUG
+""")
+        return 0
+    elif shell == "zsh":
+        print("""# LRE (Local Reflex Engine) Zsh Preexec Guard
+# Add to ~/.zshrc: eval "$(lre hook zsh)"
+autoload -Uz add-zsh-hook
+__lre_zsh_preexec() {
+    local cmd="$1"
+    case "$cmd" in
+        lre*|cd*|pwd|echo*|"") return 0 ;;
+    esac
+    if ! lre check -q "$cmd" 2>/dev/null; then
+        local code=$?
+        if [ $code -eq 1 ]; then
+            echo -e "\\033[91m\\033[1m[LRE BLOCKED]\\033[0m \\033[91mDangerous command rejected by Local Reflex Engine:\\033[0m $cmd" >&2
+        elif [ $code -eq 2 ]; then
+            echo -e "\\033[93m[LRE WARNING]\\033[0m \\033[93mSuspicious command flagged:\\033[0m $cmd" >&2
+        fi
+    fi
+}
+add-zsh-hook preexec __lre_zsh_preexec
+""")
+        return 0
+    else:
+        print(f"Unsupported shell: {shell}. Supported shells: bash, zsh", file=sys.stderr)
+        return 1
+
 def main():
     parser = argparse.ArgumentParser(
         prog="lre",
@@ -185,6 +234,10 @@ def main():
     p_bench = subparsers.add_parser("bench", help="Run local latency and throughput benchmark")
     p_bench.add_argument("-n", "--iterations", type=int, default=1000, help="Number of benchmark iterations (default: 1000)")
 
+    # hook
+    p_hook = subparsers.add_parser("hook", help="Generate shell pre-execution hook script")
+    p_hook.add_argument("shell", choices=["bash", "zsh"], help="Target shell (bash, zsh)")
+
     args = parser.parse_args()
     if not args.subcommand:
         parser.print_help()
@@ -196,6 +249,8 @@ def main():
         sys.exit(run_exec(args))
     elif args.subcommand == "bench":
         sys.exit(run_bench(args))
+    elif args.subcommand == "hook":
+        sys.exit(run_hook(args))
 
 if __name__ == "__main__":
     main()

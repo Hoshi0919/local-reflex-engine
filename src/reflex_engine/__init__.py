@@ -2,6 +2,7 @@ from .schema import SafetyLevel, Tier, Verdict
 from .rules import RuleEngine
 from .features import CommandFeatureExtractor
 from .engine import ReflexEngine
+from .guard import guard, CommandBlockedError, get_default_engine
 
 __all__ = [
     "SafetyLevel",
@@ -9,5 +10,8 @@ __all__ = [
     "Verdict",
     "RuleEngine",
     "CommandFeatureExtractor",
-    "ReflexEngine"
+    "ReflexEngine",
+    "guard",
+    "CommandBlockedError",
+    "get_default_engine"
 ]
