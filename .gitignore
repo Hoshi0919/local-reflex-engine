@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
+uv.lock
+*.egg-info/
+dist/
+build/
